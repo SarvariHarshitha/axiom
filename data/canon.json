@@ -1,0 +1,123 @@
+{
+  "phases": [
+    {
+      "key": "tokenization",
+      "title": "Tokenization & embeddings",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:1508.07909", "title": "Neural Machine Translation of Rare Words with Subword Units (BPE)" },
+        { "id": "arXiv:1301.3781", "title": "Efficient Estimation of Word Representations in Vector Space (word2vec)" },
+        { "id": "glove:2014", "title": "GloVe: Global Vectors for Word Representation" }
+      ]
+    },
+    {
+      "key": "attention",
+      "title": "Attention & Transformers",
+      "unlockAfter": 3,
+      "papers": [
+        { "id": "arXiv:1706.03762", "title": "Attention Is All You Need" },
+        { "id": "arXiv:1801.10198", "title": "Improving Language Understanding by Generative Pre-Training (GPT-1)" },
+        { "id": "arXiv:1810.04805", "title": "BERT: Pre-training of Deep Bidirectional Transformers" }
+      ]
+    },
+    {
+      "key": "positional-encoding",
+      "title": "Positional encodings",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2104.09864", "title": "RoFormer: Enhanced Transformer with Rotary Position Embedding (RoPE)" },
+        { "id": "arXiv:2108.12409", "title": "Train Short, Test Long: Attention with Linear Biases (ALiBi)" }
+      ]
+    },
+    {
+      "key": "norm-optim",
+      "title": "Normalization & optimizers",
+      "unlockAfter": 3,
+      "papers": [
+        { "id": "arXiv:1607.06450", "title": "Layer Normalization" },
+        { "id": "arXiv:1910.07467", "title": "Root Mean Square Layer Normalization (RMSNorm)" },
+        { "id": "arXiv:1711.05101", "title": "Decoupled Weight Decay Regularization (AdamW)" }
+      ]
+    },
+    {
+      "key": "scaling-laws",
+      "title": "Scaling laws & pretraining data",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2001.08361", "title": "Scaling Laws for Neural Language Models" },
+        { "id": "arXiv:2203.15556", "title": "Training Compute-Optimal Large Language Models (Chinchilla)" }
+      ]
+    },
+    {
+      "key": "peft",
+      "title": "Fine-tuning / PEFT",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2106.09685", "title": "LoRA: Low-Rank Adaptation of Large Language Models" },
+        { "id": "arXiv:2305.14314", "title": "QLoRA: Efficient Finetuning of Quantized LLMs" }
+      ]
+    },
+    {
+      "key": "alignment",
+      "title": "Alignment",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2203.02155", "title": "Training language models to follow instructions with human feedback (InstructGPT/RLHF)" },
+        { "id": "arXiv:2305.18290", "title": "Direct Preference Optimization (DPO)" }
+      ]
+    },
+    {
+      "key": "inference-opt",
+      "title": "Inference optimization",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2205.14135", "title": "FlashAttention: Fast and Memory-Efficient Exact Attention" },
+        { "id": "arXiv:2211.17192", "title": "Fast Inference from Transformers via Speculative Decoding" }
+      ]
+    },
+    {
+      "key": "retrieval",
+      "title": "Retrieval / RAG",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2005.11401", "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks" },
+        { "id": "arXiv:2002.08909", "title": "REALM: Retrieval-Augmented Language Model Pre-Training" }
+      ]
+    },
+    {
+      "key": "agents",
+      "title": "Agents & tool use",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2210.03629", "title": "ReAct: Synergizing Reasoning and Acting in Language Models" },
+        { "id": "arXiv:2302.04761", "title": "Toolformer: Language Models Can Teach Themselves to Use Tools" }
+      ]
+    },
+    {
+      "key": "evaluation",
+      "title": "Evaluation",
+      "unlockAfter": 1,
+      "papers": [
+        { "id": "arXiv:2009.03300", "title": "Measuring Massive Multitask Language Understanding (MMLU)" }
+      ]
+    },
+    {
+      "key": "multimodal",
+      "title": "Multimodal",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2103.00020", "title": "Learning Transferable Visual Models From Natural Language Supervision (CLIP)" },
+        { "id": "arXiv:2304.08485", "title": "Visual Instruction Tuning (LLaVA)" }
+      ]
+    },
+    {
+      "key": "post-transformer",
+      "title": "Architectures beyond Transformers",
+      "unlockAfter": 2,
+      "papers": [
+        { "id": "arXiv:2401.04088", "title": "Mixtral of Experts (MoE)" },
+        { "id": "arXiv:2312.00752", "title": "Mamba: Linear-Time Sequence Modeling with Selective State Spaces" }
+      ]
+    }
+  ]
+}

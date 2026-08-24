@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8787:8787"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Optional: hardened sandbox for code exercises that Pyodide can't run
+  # in-browser (heavier libraries, non-Python). Not started by default —
+  # `docker compose --profile sandbox up` to include it. See plan.md
+  # "Code exec (optional)" for the flag rationale.
+  sandbox:
+    image: python:3.12-slim
+    profiles: ["sandbox"]
+    network_mode: none
+    read_only: true
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    user: "1000:1000"
+    command: ["sleep", "infinity"]

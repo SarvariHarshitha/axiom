@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+data/paperforge.db
+data/paperforge.db-*
+data/pdf-cache/
+data/cron.log
+*.log
