@@ -3,14 +3,18 @@
 // Web Worker, keeping the UI thread responsive and isolating execution from
 // the host (no filesystem/network access). First load downloads ~15MB, then
 // browser-caches. `input()` is unsupported by design: exercises are pure functions.
-
-declare function importScripts(...urls: string[]): void;
-declare const loadPyodide: (opts: { indexURL: string }) => Promise<PyodideInterface>;
+//
+// This worker is a MODULE worker (see `new Worker(url, { type: "module" })`
+// in TestRunner.ts), so `importScripts()` is unavailable — it throws
+// "Module scripts don't support importScripts()". Pyodide ships an ESM
+// build (pyodide.mjs) for exactly this case; load it via dynamic import.
 
 interface PyodideInterface {
   runPythonAsync(code: string): Promise<unknown>;
   globals: { get(name: string): unknown };
 }
+
+type LoadPyodideFn = (opts: { indexURL: string }) => Promise<PyodideInterface>;
 
 interface TestCase {
   input: unknown[];
@@ -30,14 +34,18 @@ interface RunResult {
   error?: string;
 }
 
+const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+
 let pyodidePromise: Promise<PyodideInterface> | undefined;
 
 function getPyodide(): Promise<PyodideInterface> {
   if (!pyodidePromise) {
-    importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js");
-    pyodidePromise = loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
-    });
+    pyodidePromise = (async () => {
+      const { loadPyodide } = (await import(
+        /* @vite-ignore */ `${PYODIDE_INDEX_URL}pyodide.mjs`
+      )) as { loadPyodide: LoadPyodideFn };
+      return loadPyodide({ indexURL: PYODIDE_INDEX_URL });
+    })();
   }
   return pyodidePromise;
 }
@@ -45,6 +53,11 @@ function getPyodide(): Promise<PyodideInterface> {
 self.onmessage = async (event: MessageEvent<RunRequest>) => {
   const { code, functionName, tests, timeoutMs } = event.data;
   const pyodide = await getPyodide();
+
+  // Lets the caller distinguish "still downloading/booting Pyodide" (can take
+  // 10-20s+ on a cold cache) from "actually executing code" (should be fast),
+  // so it can apply a short timeout only to the latter.
+  (self as unknown as Worker).postMessage({ type: "ready" });
 
   const results: RunResult[] = [];
 
