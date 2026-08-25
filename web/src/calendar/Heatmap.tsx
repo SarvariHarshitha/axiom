@@ -20,6 +20,7 @@ export function Heatmap({ entries, onSelectDate }: HeatmapProps) {
     <ActivityCalendar
       data={data}
       colorScheme="dark"
+      maxLevel={2}
       theme={{
         dark: ["#17171b", "#3730a3", "#6366f1"]
       }}
