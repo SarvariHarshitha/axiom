@@ -5,7 +5,7 @@ const HF_DAILY_PAPERS_API = "https://huggingface.co/api/daily_papers";
 const SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1";
 const OPENALEX_API = "https://api.openalex.org/works";
 
-const USER_AGENT = "PaperForge/0.1 (local-first study app; contact via .env UNPAYWALL_EMAIL)";
+const USER_AGENT = "Axiom/0.1 (local-first study app; contact via .env UNPAYWALL_EMAIL)";
 
 // arXiv guidance: <=1 req/3s, honor Crawl-delay 15, use export.arxiv.org, backoff on 429/503.
 let lastArxivCall = 0;

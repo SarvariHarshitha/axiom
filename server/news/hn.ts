@@ -3,7 +3,7 @@
 // filtering top/new stories by AI keywords gives a reasonable proxy for
 // "AI news" without adding a paid news API or new vendor ToS to vet.
 const HN_API = "https://hacker-news.firebaseio.com/v0";
-const USER_AGENT = "PaperForge/0.1 (local-first study app)";
+const USER_AGENT = "Axiom/0.1 (local-first study app)";
 
 // Short/ambiguous tokens ("ai", "gpt", "agi", "llm") need WORD-BOUNDARY
 // matching - a plain substring match on "ai" fires on "aircraft",

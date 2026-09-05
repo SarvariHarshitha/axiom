@@ -15,7 +15,7 @@ export async function cachePdf(paperId: string, pdfUrl: string): Promise<string>
   if (existsSync(path)) return path;
 
   const res = await fetch(pdfUrl, {
-    headers: { "User-Agent": "PaperForge/0.1 (local-first study app)" }
+    headers: { "User-Agent": "Axiom/0.1 (local-first study app)" }
   });
   if (!res.ok) throw new Error(`Failed to download PDF: ${res.status}`);
 

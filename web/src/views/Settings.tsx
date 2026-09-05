@@ -3,7 +3,7 @@ export function SettingsView() {
     <div className="fade-in" style={{ maxWidth: 700, margin: "0 auto", padding: "32px 32px 80px" }}>
       <h1 style={{ fontSize: 22, margin: "0 0 4px", letterSpacing: "-0.01em" }}>Settings</h1>
       <p style={{ color: "var(--text-2)", margin: "0 0 28px", fontSize: 13.5 }}>
-        PaperForge is configured entirely through <code>.env</code> in the project root — there is no
+        Axiom is configured entirely through <code>.env</code> in the project root — there is no
         in-app settings UI by design, keeping the app local-first with no credentials in the browser.
       </p>
 

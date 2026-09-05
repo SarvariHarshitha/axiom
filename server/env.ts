@@ -36,7 +36,7 @@ export const env = {
   SEMANTIC_SCHOLAR_API_KEY: str("SEMANTIC_SCHOLAR_API_KEY", ""),
 
   // Paths
-  DB_PATH: str("DB_PATH", "./data/paperforge.db"),
+  DB_PATH: str("DB_PATH", "./data/axiom.db"),
   PDF_CACHE_DIR: str("PDF_CACHE_DIR", "./data/pdf-cache"),
   CANON_PATH: str("CANON_PATH", "./data/canon.json"),
   NEWS_IMAGE_CACHE_DIR: str("NEWS_IMAGE_CACHE_DIR", "./data/news-image-cache")

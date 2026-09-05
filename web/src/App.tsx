@@ -124,9 +124,9 @@ export function App() {
                 flexShrink: 0
               }}
             >
-              P
+              A
             </div>
-            <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em" }}>PaperForge</span>
+            <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em" }}>Axiom</span>
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>

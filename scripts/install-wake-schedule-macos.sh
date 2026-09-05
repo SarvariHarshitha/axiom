@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Makes PaperForge's daily generation run even if the Mac is asleep at the
+# Makes Axiom's daily generation run even if the Mac is asleep at the
 # scheduled time, by:
 #   1. Telling macOS's power management to WAKE the machine a few minutes
 #      before the scheduled run (`pmset repeat wake`) - plain cron/launchd
@@ -19,7 +19,7 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NODE_BIN="$(command -v node)"
-PLIST_LABEL="com.paperforge.daily"
+PLIST_LABEL="com.axiom.daily"
 PLIST_DEST="${HOME}/Library/LaunchAgents/${PLIST_LABEL}.plist"
 
 # Read schedule from .env (falls back to 00:30 IST / the plan.md default).
@@ -63,7 +63,7 @@ sed \
   -e "s|__APP_TIMEZONE__|${APP_TIMEZONE}|g" \
   -e "s|__HOUR__|$(( 10#${HOUR} ))|g" \
   -e "s|__MINUTE__|$(( 10#${MINUTE} ))|g" \
-  "${PROJECT_DIR}/scripts/com.paperforge.daily.plist.template" > "${PLIST_DEST}"
+  "${PROJECT_DIR}/scripts/com.axiom.daily.plist.template" > "${PLIST_DEST}"
 
 launchctl unload "${PLIST_DEST}" 2>/dev/null || true
 launchctl load "${PLIST_DEST}"
@@ -71,7 +71,7 @@ launchctl load "${PLIST_DEST}"
 echo ""
 echo "Done. Verify with:"
 echo "  pmset -g sched                 # confirms the wake schedule"
-echo "  launchctl list | grep paperforge   # confirms the agent is loaded"
+echo "  launchctl list | grep axiom   # confirms the agent is loaded"
 echo ""
 echo "To remove both:"
 echo "  sudo pmset repeat cancel"

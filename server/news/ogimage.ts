@@ -5,7 +5,7 @@ import { env } from "../env.js";
 mkdirSync(env.NEWS_IMAGE_CACHE_DIR, { recursive: true });
 
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; PaperForge/0.1; local-first study app)";
+  "Mozilla/5.0 (compatible; Axiom/0.1; local-first study app)";
 const FETCH_TIMEOUT_MS = 6000;
 const MAX_HTML_BYTES = 2_000_000; // stop reading a page after ~2MB; og:image is always in <head>
 const MAX_IMAGE_BYTES = 4_000_000;

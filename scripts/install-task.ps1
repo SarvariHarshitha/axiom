@@ -1,4 +1,4 @@
-# Installs a Windows Task Scheduler task that runs PaperForge's daily
+# Installs a Windows Task Scheduler task that runs Axiom's daily
 # generation headlessly, independent of whether the app/browser is open.
 # Run this in an elevated PowerShell prompt from the project root:
 #   powershell -ExecutionPolicy Bypass -File scripts\install-task.ps1
@@ -19,10 +19,10 @@ $Trigger = New-ScheduledTaskTrigger -Daily -At 00:30
 
 $Settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable
 
-Register-ScheduledTask -TaskName "PaperForge Daily Generation" `
+Register-ScheduledTask -TaskName "Axiom Daily Generation" `
   -Action $Action -Trigger $Trigger -Settings $Settings `
-  -Description "Runs PaperForge's daily paper generation pipeline" -Force
+  -Description "Runs Axiom's daily paper generation pipeline" -Force
 
-Write-Host "Installed scheduled task 'PaperForge Daily Generation' (runs daily at 00:30 local time)."
+Write-Host "Installed scheduled task 'Axiom Daily Generation' (runs daily at 00:30 local time)."
 Write-Host "Logs: $LogPath (redirect not configured by Task Scheduler; use Get-ScheduledTaskInfo to check run history)."
 Write-Host "Note: catch-up-on-launch also covers missed runs the next time the server starts."
