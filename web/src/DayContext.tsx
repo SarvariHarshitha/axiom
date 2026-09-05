@@ -1,16 +1,21 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api, type TodayResponse } from "./api.js";
+import type { RuntimePackage } from "./ide/TestRunner.js";
 
 export type QuestionStatus = "untouched" | "attempted" | "solved";
 
 export interface QuestionState {
   code: string;
-  visibleResults?: { pass: boolean }[];
+  runtimePackage: RuntimePackage;
+  visibleResults?: { pass: boolean; actual?: unknown; error?: string }[];
   hiddenPassCount?: number;
   hiddenTotal?: number;
   allPassed?: boolean;
   running: boolean;
   runError?: string;
+  /** Elapsed seconds spent on this question, LeetCode-style. Frozen once solved. */
+  elapsedSec: number;
+  timerStartedAt?: number;
 }
 
 interface DayContextValue {
@@ -20,11 +25,15 @@ interface DayContextValue {
   states: Record<string, QuestionState>;
   generate: () => Promise<void>;
   updateCode: (questionId: string, code: string) => void;
+  setRuntimePackage: (questionId: string, pkg: RuntimePackage) => void;
+  clearCode: (questionId: string) => void;
   runQuestion: (questionId: string) => Promise<void>;
   statusFor: (questionId: string) => QuestionStatus;
   allSolved: boolean;
   completeDay: () => Promise<void>;
   dayCompleted: boolean;
+  elapsedSecFor: (questionId: string) => number;
+  startTimer: (questionId: string) => void;
 }
 
 const DayContext = createContext<DayContextValue | undefined>(undefined);
@@ -44,13 +53,28 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
   const [states, setStates] = useState<Record<string, QuestionState>>({});
   const [startedAt] = useState(() => Date.now());
   const [dayCompleted, setDayCompleted] = useState(false);
+  // Bumped once a second so components reading elapsedSecFor() re-render
+  // live without storing a re-render-triggering value per question.
+  const [, setTick] = useState(0);
+  const statesRef = useRef(states);
+  statesRef.current = states;
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const load = useCallback((d: TodayResponse) => {
     setData(d);
     setStates((prev) => {
       const next: Record<string, QuestionState> = {};
       for (const q of d.questions) {
-        next[q.id] = prev[q.id] ?? { code: starterCode(q), running: false };
+        next[q.id] = prev[q.id] ?? {
+          code: starterCode(q),
+          runtimePackage: "python",
+          running: false,
+          elapsedSec: 0
+        };
       }
       return next;
     });
@@ -80,6 +104,51 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
     setStates((prev) => ({ ...prev, [questionId]: { ...prev[questionId]!, code } }));
   }
 
+  function setRuntimePackage(questionId: string, pkg: RuntimePackage) {
+    setStates((prev) => ({ ...prev, [questionId]: { ...prev[questionId]!, runtimePackage: pkg } }));
+  }
+
+  function clearCode(questionId: string) {
+    if (!data) return;
+    const q = data.questions.find((qq) => qq.id === questionId);
+    if (!q) return;
+    setStates((prev) => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId]!,
+        code: starterCode(q),
+        visibleResults: undefined,
+        allPassed: undefined,
+        runError: undefined
+      }
+    }));
+  }
+
+  /** Starts (or resumes) the LeetCode-style per-question timer. No-op once solved or already running. */
+  function startTimer(questionId: string) {
+    setStates((prev) => {
+      const s = prev[questionId];
+      if (!s || s.timerStartedAt || s.allPassed) return prev;
+      return { ...prev, [questionId]: { ...s, timerStartedAt: Date.now() } };
+    });
+  }
+
+  function pauseTimer(questionId: string) {
+    setStates((prev) => {
+      const s = prev[questionId];
+      if (!s || !s.timerStartedAt) return prev;
+      const elapsedSec = s.elapsedSec + Math.round((Date.now() - s.timerStartedAt) / 1000);
+      return { ...prev, [questionId]: { ...s, elapsedSec, timerStartedAt: undefined } };
+    });
+  }
+
+  function elapsedSecFor(questionId: string): number {
+    const s = statesRef.current[questionId];
+    if (!s) return 0;
+    if (!s.timerStartedAt) return s.elapsedSec;
+    return s.elapsedSec + Math.round((Date.now() - s.timerStartedAt) / 1000);
+  }
+
   async function runQuestion(questionId: string) {
     if (!data) return;
     const q = data.questions.find((qq) => qq.id === questionId);
@@ -95,12 +164,13 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
     const state = states[questionId]!;
 
     try {
-      const results = await runInPyodideWorker(state.code, fnName, q.visibleTests);
+      const results = await runInPyodideWorker(state.code, fnName, q.visibleTests, state.runtimePackage);
       const allPassed = results.every((r) => r.pass);
       setStates((prev) => ({
         ...prev,
         [questionId]: { ...prev[questionId]!, visibleResults: results, allPassed, running: false }
       }));
+      if (allPassed) pauseTimer(questionId);
     } catch (err) {
       setStates((prev) => ({
         ...prev,
@@ -148,11 +218,15 @@ export function DayProvider({ children }: { children: React.ReactNode }) {
         states,
         generate,
         updateCode,
+        setRuntimePackage,
+        clearCode,
         runQuestion,
         statusFor,
         allSolved,
         completeDay,
-        dayCompleted
+        dayCompleted,
+        elapsedSecFor,
+        startTimer
       }}
     >
       {children}

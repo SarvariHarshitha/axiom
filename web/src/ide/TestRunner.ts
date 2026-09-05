@@ -1,3 +1,5 @@
+export type { RuntimePackage } from "./PyodideWorker.js";
+
 export interface TestCase {
   input: unknown[];
   expected: unknown;
@@ -5,15 +7,17 @@ export interface TestCase {
 
 export interface TestRunResult {
   pass: boolean;
+  actual?: unknown;
   error?: string;
 }
 
 const RUN_TIMEOUT_MS = 5000;
-// Pyodide's one-time download+init (~15MB) is a separate concern from
-// executing code and routinely takes far longer than a code timeout should -
-// especially on a cold browser cache or slow connection. Give it a much
-// longer allowance so a slow-but-succeeding load isn't mistaken for a hang.
-const LOAD_TIMEOUT_MS = 45000;
+// Pyodide's one-time download+init (~15MB, +another few MB if a package like
+// numpy is requested) is a separate concern from executing code and
+// routinely takes far longer than a code timeout should - especially on a
+// cold browser cache or slow connection. Give it a much longer allowance so
+// a slow-but-succeeding load isn't mistaken for a hang.
+const LOAD_TIMEOUT_MS = 60000;
 
 /**
  * Thin wrapper around the Pyodide Web Worker. One worker per run keeps
@@ -25,7 +29,8 @@ const LOAD_TIMEOUT_MS = 45000;
 export function runInPyodideWorker(
   code: string,
   functionName: string,
-  tests: TestCase[]
+  tests: TestCase[],
+  runtimePackage: import("./PyodideWorker.js").RuntimePackage = "python"
 ): Promise<TestRunResult[]> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./PyodideWorker.ts", import.meta.url), {
@@ -66,6 +71,13 @@ export function runInPyodideWorker(
       reject(err);
     };
 
-    worker.postMessage({ type: "run", code, functionName, tests, timeoutMs: RUN_TIMEOUT_MS });
+    worker.postMessage({
+      type: "run",
+      code,
+      functionName,
+      tests,
+      timeoutMs: RUN_TIMEOUT_MS,
+      package: runtimePackage
+    });
   });
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDay } from "../DayContext.js";
 import { Editor } from "../ide/Editor.js";
 import { StatusIcon, difficultyBadgeClass } from "../components/StatusIcon.js";
+import type { RuntimePackage } from "../ide/TestRunner.js";
 
 interface WorkspaceViewProps {
   activeQuestionId?: string;
@@ -10,10 +11,52 @@ interface WorkspaceViewProps {
 
 type DescTab = "description" | "reflection";
 
+interface PackageOption {
+  id: RuntimePackage | "pytorch" | "cuda";
+  label: string;
+  available: boolean;
+  disabledReason?: string;
+}
+
+const PACKAGE_OPTIONS: PackageOption[] = [
+  { id: "python", label: "Python (stdlib)", available: true },
+  { id: "numpy", label: "NumPy", available: true },
+  {
+    id: "pytorch",
+    label: "PyTorch",
+    available: false,
+    disabledReason: "PyTorch has no WebAssembly/Pyodide build, so it can't run in the browser sandbox."
+  },
+  {
+    id: "cuda",
+    label: "CUDA",
+    available: false,
+    disabledReason: "CUDA requires a physical NVIDIA GPU, which a browser sandbox can't expose."
+  }
+];
+
+function formatElapsed(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceViewProps) {
-  const { data, states, updateCode, runQuestion, statusFor } = useDay();
+  const {
+    data,
+    states,
+    updateCode,
+    setRuntimePackage,
+    clearCode,
+    runQuestion,
+    statusFor,
+    elapsedSecFor,
+    startTimer
+  } = useDay();
   const [descTab, setDescTab] = useState<DescTab>("description");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [packagePickerOpen, setPackagePickerOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const question = useMemo(
     () => data?.questions.find((q) => q.id === activeQuestionId),
@@ -26,6 +69,16 @@ export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceV
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, activeQuestionId]);
+
+  // Starts (or resumes) the per-question timer as soon as its workspace is open.
+  useEffect(() => {
+    if (activeQuestionId) startTimer(activeQuestionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQuestionId]);
+
+  useEffect(() => {
+    setConfirmClear(false);
+  }, [activeQuestionId]);
 
   if (!data) {
     return (
@@ -120,21 +173,45 @@ export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceV
           </div>
         )}
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <button
-            className="btn btn-ghost btn-sm"
-            disabled={idx <= 0}
-            onClick={() => onSelectQuestion(data.questions[idx - 1]!.id)}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            title={statusFor(question.id) === "solved" ? "Timer stopped — solved" : "Time spent on this question"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 10px",
+              borderRadius: "var(--radius-sm)",
+              background: "var(--bg-3)",
+              border: "1px solid var(--border)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 12.5,
+              color: statusFor(question.id) === "solved" ? "var(--green)" : "var(--text-1)"
+            }}
           >
-            ← Prev
-          </button>
-          <button
-            className="btn btn-ghost btn-sm"
-            disabled={idx >= data.questions.length - 1}
-            onClick={() => onSelectQuestion(data.questions[idx + 1]!.id)}
-          >
-            Next →
-          </button>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M12 7v5l3.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            {formatElapsed(elapsedSecFor(question.id))}
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={idx <= 0}
+              onClick={() => onSelectQuestion(data.questions[idx - 1]!.id)}
+            >
+              ← Prev
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={idx >= data.questions.length - 1}
+              onClick={() => onSelectQuestion(data.questions[idx + 1]!.id)}
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </div>
 
@@ -273,30 +350,135 @@ export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceV
               justifyContent: "space-between",
               padding: "8px 14px",
               borderBottom: "1px solid var(--border)",
-              flexShrink: 0
+              flexShrink: 0,
+              position: "relative"
             }}
           >
-            <span style={{ fontSize: 12, color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>
-              solution.py
-            </span>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => runQuestion(question.id)}
-              disabled={state?.running}
-            >
-              {state?.running ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>
+                solution.py
+              </span>
+
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPackagePickerOpen((v) => !v)}
+                style={{ gap: 6 }}
+              >
+                {PACKAGE_OPTIONS.find((p) => p.id === state?.runtimePackage)?.label ?? "Python"}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {packagePickerOpen && (
+                <div
+                  className="card fade-in"
+                  style={{
+                    position: "absolute",
+                    top: 40,
+                    left: 90,
+                    width: 260,
+                    zIndex: 20,
+                    boxShadow: "var(--shadow-lg)",
+                    overflow: "hidden"
+                  }}
+                  onMouseLeave={() => setPackagePickerOpen(false)}
+                >
+                  {PACKAGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      title={opt.disabledReason}
+                      disabled={!opt.available}
+                      onClick={() => {
+                        if (!opt.available) return;
+                        setRuntimePackage(question.id, opt.id as RuntimePackage);
+                        setPackagePickerOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: 2,
+                        padding: "9px 12px",
+                        background:
+                          opt.id === state?.runtimePackage ? "var(--accent-soft)" : "transparent",
+                        border: "none",
+                        borderBottom: "1px solid var(--border)",
+                        cursor: opt.available ? "pointer" : "not-allowed",
+                        textAlign: "left",
+                        opacity: opt.available ? 1 : 0.5
+                      }}
+                    >
+                      <span style={{ fontSize: 12.5, color: "var(--text-0)", fontWeight: 500 }}>
+                        {opt.label}
+                        {!opt.available && (
+                          <span style={{ color: "var(--text-3)", fontWeight: 400 }}> · unavailable</span>
+                        )}
+                      </span>
+                      {opt.disabledReason && (
+                        <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.4 }}>
+                          {opt.disabledReason}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {confirmClear ? (
                 <>
-                  <span className="spinner" /> Running
+                  <span style={{ fontSize: 11.5, color: "var(--text-2)" }}>Clear your code?</span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: "var(--red)", color: "white" }}
+                    onClick={() => {
+                      clearCode(question.id);
+                      setConfirmClear(false);
+                    }}
+                  >
+                    Clear
+                  </button>
                 </>
               ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z" />
+                <button className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)} title="Reset to the starter template">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
-                  Run
-                </>
+                  Clear all
+                </button>
               )}
-            </button>
+
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => runQuestion(question.id)}
+                disabled={state?.running}
+              >
+                {state?.running ? (
+                  <>
+                    <span className="spinner" /> Running
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    Run
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <div style={{ flex: "1 1 55%", minHeight: 0 }}>
@@ -362,22 +544,15 @@ export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceV
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {state.visibleResults.map((r, i) => (
-                    <div
+                    <TestCaseResult
                       key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        fontSize: 12,
-                        fontFamily: "var(--font-mono)",
-                        padding: "6px 10px",
-                        borderRadius: "var(--radius-sm)",
-                        background: r.pass ? "var(--green-soft)" : "var(--red-soft)",
-                        color: r.pass ? "var(--green)" : "var(--red)"
-                      }}
-                    >
-                      {r.pass ? "✓" : "✗"} Test case {i + 1}
-                    </div>
+                      index={i}
+                      pass={r.pass}
+                      input={question.visibleTests[i]?.input}
+                      expected={question.visibleTests[i]?.expected}
+                      actual={r.actual}
+                      error={r.error}
+                    />
                   ))}
                 </div>
               </>
@@ -385,6 +560,100 @@ export function WorkspaceView({ activeQuestionId, onSelectQuestion }: WorkspaceV
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TestCaseResult({
+  index,
+  pass,
+  input,
+  expected,
+  actual,
+  error
+}: {
+  index: number;
+  pass: boolean;
+  input?: unknown[];
+  expected?: unknown;
+  actual?: unknown;
+  error?: string;
+}) {
+  // Failures start expanded (that's the whole point — show where it went
+  // wrong); passes start collapsed to keep a long test list scannable.
+  const [open, setOpen] = useState(!pass);
+
+  return (
+    <div
+      style={{
+        borderRadius: "var(--radius-sm)",
+        background: pass ? "var(--green-soft)" : "var(--red-soft)",
+        overflow: "hidden"
+      }}
+    >
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          color: pass ? "var(--green)" : "var(--red)",
+          textAlign: "left"
+        }}
+      >
+        {pass ? "✓" : "✗"} Test case {index + 1}
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.12s ease" }}
+        >
+          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            padding: "0 10px 10px",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11.5,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4
+          }}
+        >
+          {input !== undefined && (
+            <div>
+              <span style={{ color: "var(--text-2)" }}>Input: </span>
+              <span style={{ color: "var(--text-1)" }}>{JSON.stringify(input)}</span>
+            </div>
+          )}
+          <div>
+            <span style={{ color: "var(--text-2)" }}>Expected: </span>
+            <span style={{ color: "var(--text-1)" }}>{JSON.stringify(expected)}</span>
+          </div>
+          {error ? (
+            <div>
+              <span style={{ color: "var(--text-2)" }}>Error: </span>
+              <span style={{ color: "var(--red)" }}>{error}</span>
+            </div>
+          ) : (
+            <div>
+              <span style={{ color: "var(--text-2)" }}>Output: </span>
+              <span style={{ color: pass ? "var(--text-1)" : "var(--red)" }}>{JSON.stringify(actual)}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

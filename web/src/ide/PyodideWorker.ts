@@ -11,6 +11,7 @@
 
 interface PyodideInterface {
   runPythonAsync(code: string): Promise<unknown>;
+  loadPackage(names: string | string[]): Promise<void>;
   globals: { get(name: string): unknown };
 }
 
@@ -21,16 +22,21 @@ interface TestCase {
   expected: unknown;
 }
 
+/** "python" needs no extra package; others are loaded into Pyodide on demand. */
+export type RuntimePackage = "python" | "numpy";
+
 interface RunRequest {
   type: "run";
   code: string;
   functionName: string;
   tests: TestCase[];
   timeoutMs: number;
+  package: RuntimePackage;
 }
 
 interface RunResult {
   pass: boolean;
+  actual?: unknown;
   error?: string;
 }
 
@@ -50,9 +56,41 @@ function getPyodide(): Promise<PyodideInterface> {
   return pyodidePromise;
 }
 
+// Converts common numpy return types (ndarray, numpy scalars) to plain
+// JSON-safe Python values before json.dumps, so a solution written against
+// numpy can still be graded the same way as a pure-stdlib one.
+const JSON_SAFE_HELPER = `
+def _pf_to_jsonable(x):
+    try:
+        import numpy as _np
+        if isinstance(x, _np.ndarray):
+            return x.tolist()
+        if isinstance(x, _np.generic):
+            return x.item()
+    except ImportError:
+        pass
+    if isinstance(x, (list, tuple)):
+        return [_pf_to_jsonable(v) for v in x]
+    if isinstance(x, dict):
+        return {k: _pf_to_jsonable(v) for k, v in x.items()}
+    return x
+`;
+
 self.onmessage = async (event: MessageEvent<RunRequest>) => {
-  const { code, functionName, tests, timeoutMs } = event.data;
+  const { code, functionName, tests, timeoutMs, package: pkg } = event.data;
   const pyodide = await getPyodide();
+
+  if (pkg !== "python") {
+    try {
+      await pyodide.loadPackage(pkg);
+    } catch (err) {
+      (self as unknown as Worker).postMessage({
+        type: "result",
+        results: tests.map(() => ({ pass: false, error: `Failed to load package "${pkg}": ${String(err)}` }))
+      });
+      return;
+    }
+  }
 
   // Lets the caller distinguish "still downloading/booting Pyodide" (can take
   // 10-20s+ on a cold cache) from "actually executing code" (should be fast),
@@ -66,7 +104,7 @@ self.onmessage = async (event: MessageEvent<RunRequest>) => {
   );
 
   try {
-    await Promise.race([pyodide.runPythonAsync(code), timeout]);
+    await Promise.race([pyodide.runPythonAsync(JSON_SAFE_HELPER + code), timeout]);
 
     for (const test of tests) {
       try {
@@ -75,14 +113,14 @@ self.onmessage = async (event: MessageEvent<RunRequest>) => {
 import json
 _args = json.loads('''${argsJson.replace(/'''/g, "'\\'\\'\\'")}''')
 _result = ${functionName}(*_args)
-json.dumps(_result)
+json.dumps(_pf_to_jsonable(_result))
 `;
         const actualJson = (await Promise.race([
           pyodide.runPythonAsync(check),
           timeout
         ])) as string;
         const actual = JSON.parse(actualJson);
-        results.push({ pass: JSON.stringify(actual) === JSON.stringify(test.expected) });
+        results.push({ pass: JSON.stringify(actual) === JSON.stringify(test.expected), actual });
       } catch (err) {
         results.push({ pass: false, error: String(err) });
       }
