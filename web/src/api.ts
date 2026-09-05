@@ -22,6 +22,19 @@ export interface TodayResponse {
   }[];
 }
 
+export interface NewsCard {
+  id: number;
+  title: string;
+  url: string;
+  hnUrl: string;
+  source: string;
+  score: number;
+  by: string;
+  time: number;
+  descendants: number;
+  hasImage: boolean;
+}
+
 export interface CalendarEntry {
   date: string;
   count: number;
@@ -75,5 +88,7 @@ export const api = {
     if (to) params.set("to", to);
     const qs = params.toString();
     return fetch(`/api/calendar${qs ? `?${qs}` : ""}`).then((r) => json<CalendarEntry[]>(r));
-  }
+  },
+
+  news: () => fetch("/api/news").then((r) => json<NewsCard[]>(r))
 };

@@ -38,5 +38,6 @@ export const env = {
   // Paths
   DB_PATH: str("DB_PATH", "./data/paperforge.db"),
   PDF_CACHE_DIR: str("PDF_CACHE_DIR", "./data/pdf-cache"),
-  CANON_PATH: str("CANON_PATH", "./data/canon.json")
+  CANON_PATH: str("CANON_PATH", "./data/canon.json"),
+  NEWS_IMAGE_CACHE_DIR: str("NEWS_IMAGE_CACHE_DIR", "./data/news-image-cache")
 };

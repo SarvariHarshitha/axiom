@@ -4,5 +4,6 @@ dist/
 data/paperforge.db
 data/paperforge.db-*
 data/pdf-cache/
+data/news-image-cache/
 data/cron.log
 *.log

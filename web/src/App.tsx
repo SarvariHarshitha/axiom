@@ -1,13 +1,29 @@
 import { useState } from "react";
 import { DayProvider } from "./DayContext.js";
+import { HomeView } from "./views/Home.js";
 import { TodayView } from "./views/Today.js";
 import { WorkspaceView } from "./views/Workspace.js";
 import { CalendarView } from "./views/Calendar.js";
 import { SettingsView } from "./views/Settings.js";
 
-type Tab = "today" | "workspace" | "calendar" | "settings";
+type Tab = "home" | "today" | "workspace" | "calendar" | "settings";
 
 const NAV: { key: Tab; label: string; icon: JSX.Element }[] = [
+  {
+    key: "home",
+    label: "Home",
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 11.5 12 4l8 7.5M6 9.5V20h5v-6h2v6h5V9.5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
+  },
   {
     key: "today",
     label: "Today",
@@ -71,7 +87,7 @@ const NAV: { key: Tab; label: string; icon: JSX.Element }[] = [
 ];
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>("home");
   const [activeQuestionId, setActiveQuestionId] = useState<string>();
 
   function openInWorkspace(questionId: string) {
@@ -155,6 +171,7 @@ export function App() {
         </aside>
 
         <main style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
+          {tab === "home" && <HomeView />}
           {tab === "today" && <TodayView onOpenQuestion={openInWorkspace} />}
           {tab === "workspace" && (
             <WorkspaceView activeQuestionId={activeQuestionId} onSelectQuestion={setActiveQuestionId} />

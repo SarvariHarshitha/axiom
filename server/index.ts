@@ -8,6 +8,7 @@ import { validateRoutes } from "./routes/validate.js";
 import { summaryRoutes } from "./routes/summary.js";
 import { calendarRoutes } from "./routes/calendar.js";
 import { pdfRoutes } from "./routes/pdf.js";
+import { newsRoutes } from "./routes/news.js";
 import { startScheduler, catchUpOnLaunch } from "./scheduler/cron.js";
 
 const app = Fastify({ logger: true });
@@ -22,6 +23,7 @@ await app.register(validateRoutes);
 await app.register(summaryRoutes);
 await app.register(calendarRoutes);
 await app.register(pdfRoutes);
+await app.register(newsRoutes);
 
 startScheduler();
 
