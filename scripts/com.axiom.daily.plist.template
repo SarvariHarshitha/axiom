@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.paperforge.daily</string>
+  <string>com.axiom.daily</string>
 
   <key>ProgramArguments</key>
   <array>

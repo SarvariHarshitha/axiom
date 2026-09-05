@@ -25,12 +25,9 @@ choice, PDF-embedding legality, cost analysis, roadmap).
 ## 2. Get the code
 
 ```bash
-git clone https://github.com/SarvariHarshitha/paperforge.git axiom
+git clone https://github.com/SarvariHarshitha/axiom.git
 cd axiom
 ```
-
-(The GitHub repo is still named `paperforge` — that's just the remote URL,
-the app itself is Axiom.)
 
 ## 3. Configure
 
